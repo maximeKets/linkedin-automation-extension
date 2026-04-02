@@ -10,6 +10,7 @@ import {
   type CampaignState,
   type Config,
 } from './core/storage';
+import { fillTemplate } from './utils/templateEngine';
 
 /**
  * Popup — Interface principale de l'extension.
@@ -106,6 +107,16 @@ function App() {
   const isWorkingHours = isWithinOfficeHours(config);
   const canStart = isLinkedInSearch && messageDraft.trim().length > 0;
 
+  // Mock data for preview
+  const previewData = {
+    prenom: 'Jean',
+    nom: 'Dupont',
+    titre: 'Directeur Commercial',
+    entreprise: 'Acme Corp'
+  };
+
+  const previewMessage = fillTemplate(messageDraft, previewData);
+
   return (
     <>
       {/* Header */}
@@ -143,7 +154,14 @@ function App() {
           placeholder="Ex: Bonjour {nom}, ravi de..."
           disabled={campaignState.active}
         ></textarea>
-        <div class="message-hint">Utilisez <code>{`{nom}`}</code> pour le prénom.</div>
+        <div class="message-hint">Utilisez <code>{`{prenom}, {nom}, {titre}, {entreprise}`}</code></div>
+        
+        {messageDraft && (
+          <div class="message-preview animated-in">
+            <span class="preview-label">Aperçu (exemple) :</span>
+            <div class="preview-content">{previewMessage}</div>
+          </div>
+        )}
       </div>
 
       {/* Start / Stop button */}

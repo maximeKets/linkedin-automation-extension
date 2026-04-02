@@ -14,6 +14,9 @@ export const SELECTORS = {
   /** Nom du profil sur une carte de résultat */
   PROFILE_NAME: '.entity-result__title-text a span[aria-hidden="true"]',
 
+  /** Poste/Titre sur une carte de résultat */
+  PROFILE_TITLE: '.entity-result__primary-subtitle',
+
   /** Bouton "Suivant" de la pagination */
   NEXT_PAGE_BUTTON: 'button[aria-label="Suivant"], button[aria-label="Next"]',
 
