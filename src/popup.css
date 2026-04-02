@@ -168,6 +168,91 @@ body {
   color: var(--text-secondary);
 }
 
+/* Scheduled Info */
+.scheduled-info {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: var(--warning);
+  padding: 12px;
+  border-radius: var(--radius);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Expert Section */
+.expert-section {
+  padding-top: 4px;
+}
+
+.expert-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.expert-toggle-row label {
+  cursor: pointer;
+}
+
+.expert-config {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+}
+
+.input-group label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hours-inputs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hours-inputs input {
+  width: 50px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.hours-inputs span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Animation */
+.animated-in {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Utility */
 .sr-only {
   position: absolute;

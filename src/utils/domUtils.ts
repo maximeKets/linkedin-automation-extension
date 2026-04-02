@@ -286,3 +286,16 @@ export async function humanScroll(): Promise<void> {
   window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
   await sleep(randomBetween(300, 800));
 }
+
+/**
+ * Génère un délai aléatoire avec une distribution non-uniforme (biasing vers les délais longs).
+ * Utile pour simuler une "réflexion" humaine plus crédible.
+ * @param min Millisecondes
+ * @param max Millisecondes
+ */
+export async function randomDelayHuman(min: number, max: number): Promise<void> {
+  // Facteur 0.7 décale la moyenne vers le haut (pauses plus longues)
+  const skew = Math.pow(Math.random(), 0.7);
+  const ms = min + Math.floor((max - min) * skew);
+  return sleep(ms);
+}

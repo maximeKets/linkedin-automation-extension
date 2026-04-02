@@ -4,6 +4,8 @@ import {
   getState,
   startCampaign,
   stopCampaign,
+  updateConfig,
+  isWithinOfficeHours,
   DEFAULTS,
   type CampaignState,
   type Config,
@@ -48,10 +50,33 @@ function App() {
     if (campaignState.active) {
       await stopCampaign();
     } else {
+      if (!isWithinOfficeHours(config)) {
+        alert(`Hors horaires de bureau (${config.heuresDebut}h-${config.heuresFin}h).`);
+        return;
+      }
       await startCampaign();
     }
-    // State will be updated via the onChanged listener
   };
+
+  const handleExpertToggle = async (e: any) => {
+    const isChecked = e.currentTarget.checked;
+    if (isChecked) {
+      const confirmed = window.confirm(
+        "⚠️ Mode Expert : L'augmentation des limites augmente significativement le risque de restriction de votre compte LinkedIn. Je comprends les risques."
+      );
+      if (!confirmed) return;
+    }
+    await updateConfig({ modeExpert: isChecked });
+  };
+
+  const updateHours = async (field: 'heuresDebut' | 'heuresFin', value: string) => {
+    const val = parseInt(value, 10);
+    if (!isNaN(val)) {
+      await updateConfig({ [field]: val });
+    }
+  };
+
+  const isWorkingHours = isWithinOfficeHours(config);
 
   return (
     <>
@@ -74,13 +99,19 @@ function App() {
       </div>
 
       {/* Start / Stop button */}
-      <button
-        class={`btn-start ${campaignState.active ? 'active' : 'idle'}`}
-        onClick={toggleCampaign}
-        id="btn-toggle-campaign"
-      >
-        {campaignState.active ? '⏸ ARRÊTER' : '▶ DÉMARRER'}
-      </button>
+      {!isWorkingHours && !campaignState.active ? (
+        <div class="scheduled-info">
+          <span>⏲️ Reprise programmée à {config.heuresDebut}h00</span>
+        </div>
+      ) : (
+        <button
+          class={`btn-start ${campaignState.active ? 'active' : 'idle'}`}
+          onClick={toggleCampaign}
+          id="btn-toggle-campaign"
+        >
+          {campaignState.active ? '⏸ ARRÊTER' : '▶ DÉMARRER'}
+        </button>
+      )}
 
       {/* Info */}
       <div class="info-row">
@@ -90,6 +121,46 @@ function App() {
       <div class="info-row">
         <span>📅 Dernier run</span>
         <span class="value">{campaignState.dateDernierRun || '—'}</span>
+      </div>
+
+      <div class="divider" />
+
+      {/* Expert Mode Section */}
+      <div class="expert-section">
+        <div class="expert-toggle-row">
+          <label htmlFor="expert-mode">Mode Expert 🛡️</label>
+          <input
+            type="checkbox"
+            id="expert-mode"
+            checked={config.modeExpert}
+            onChange={handleExpertToggle}
+          />
+        </div>
+
+        {config.modeExpert && (
+          <div class="expert-config animated-in">
+            <div class="input-group">
+              <label>Limites {config.heuresDebut}h - {config.heuresFin}h</label>
+              <div class="hours-inputs">
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={config.heuresDebut}
+                  onChange={(e) => updateHours('heuresDebut', e.currentTarget.value)}
+                />
+                <span>à</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  value={config.heuresFin}
+                  onChange={(e) => updateHours('heuresFin', e.currentTarget.value)}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
