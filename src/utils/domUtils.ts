@@ -241,7 +241,6 @@ export async function clickElement(element: Element): Promise<void> {
   const eventOptions: MouseEventInit = {
     bubbles: true,
     cancelable: true,
-    view: window,
     clientX: x,
     clientY: y,
   };
