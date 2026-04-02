@@ -44,7 +44,7 @@ const LOG_TAG = '[Engine]';
 /**
  * Automate principal.
  */
-class ExecutionEngine {
+export class ExecutionEngine {
   private active = false;
   private config: Config | null = null;
   private isProcessing = false;
@@ -356,6 +356,3 @@ class ExecutionEngine {
   }
 }
 
-// ─── Lancement ───────────────────────────────────────────
-const engine = new ExecutionEngine();
-engine.init();
