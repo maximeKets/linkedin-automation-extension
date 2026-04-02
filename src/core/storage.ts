@@ -20,6 +20,8 @@ export interface Config {
   maxParJour: number;     // Bridé à 30 si modeExpert = false
   pauseMin: number;       // Secondes (défaut: 20)
   pauseMax: number;       // Secondes (défaut: 45)
+  heuresDebut: number;     // Heure de début (0-23, défaut: 7)
+  heuresFin: number;       // Heure de fin (0-23, défaut: 22)
   messageTemplate: string;
 }
 
@@ -50,6 +52,8 @@ export const DEFAULTS: StorageSchema = {
     maxParJour: MAX_PAR_JOUR_SAFE,
     pauseMin: 20,
     pauseMax: 45,
+    heuresDebut: 7,
+    heuresFin: 22,
     messageTemplate: 'Bonjour {nom}, je souhaite vous ajouter à mon réseau professionnel.',
   },
   historiqueInvits: [],
@@ -93,7 +97,7 @@ function todayISO(): string {
  * En mode normal (modeExpert=false), maxParJour ne peut pas dépasser 30.
  * En mode expert, maxParJour est cappé à 100.
  */
-function enforceConfigLimits(config: Config): Config {
+export function enforceConfigLimits(config: Config): Config {
   const capped = { ...config };
 
   if (!capped.modeExpert) {
@@ -104,8 +108,15 @@ function enforceConfigLimits(config: Config): Config {
 
   // Garanties de cohérence
   capped.maxParJour = Math.max(1, capped.maxParJour);
-  capped.pauseMin = Math.max(1, capped.pauseMin);
+  
+  // En mode normal, pauses minimum de 20s. En expert, minimum 5s.
+  const minPauseAllowed = capped.modeExpert ? 5 : 20;
+  capped.pauseMin = Math.max(minPauseAllowed, capped.pauseMin);
   capped.pauseMax = Math.max(capped.pauseMin, capped.pauseMax);
+
+  // Bornes horaires 0-23
+  capped.heuresDebut = Math.max(0, Math.min(23, capped.heuresDebut));
+  capped.heuresFin = Math.max(0, Math.min(23, capped.heuresFin));
 
   return capped;
 }
@@ -233,6 +244,22 @@ export async function resetDailyCounterIfNewDay(): Promise<boolean> {
   }
 
   return false;
+}
+
+/**
+ * Vérifie si l'heure actuelle est dans la plage configurée.
+ */
+export function isWithinOfficeHours(config: Config): boolean {
+  const now = new Date();
+  const hour = now.getHours();
+
+  // Cas normal : 07:00 -> 22:00 (début < fin)
+  if (config.heuresDebut < config.heuresFin) {
+    return hour >= config.heuresDebut && hour < config.heuresFin;
+  }
+  
+  // Cas nuit : 22:00 -> 07:00 (début > fin)
+  return hour >= config.heuresDebut || hour < config.heuresFin;
 }
 
 /**

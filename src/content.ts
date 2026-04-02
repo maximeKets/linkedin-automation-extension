@@ -14,6 +14,7 @@ import {
   addToHistory,
   addToFailures,
   stopCampaign,
+  isWithinOfficeHours,
   type CampaignState,
   type Config,
 } from './core/storage';
@@ -26,6 +27,8 @@ import {
   clickElement,
   sleep,
   randomBetween,
+  randomDelayHuman,
+  humanScroll,
 } from './utils/domUtils';
 
 import { injectTextInReact } from './utils/reactUtils';
@@ -84,6 +87,13 @@ class ExecutionEngine {
 
     try {
       while (this.active) {
+        // 0. Vérification des horaires (Sécurité critique)
+        if (this.config && !isWithinOfficeHours(this.config)) {
+          console.log(`${LOG_TAG} Hors horaires autorisés (${this.config.heuresDebut}h-${this.config.heuresFin}h). Pause automatique.`);
+          await stopCampaign();
+          break;
+        }
+
         console.log(`${LOG_TAG} Début du cycle de scan...`);
         
         // 1. Attendre les résultats de recherche
@@ -112,6 +122,12 @@ class ExecutionEngine {
             continue;
           }
 
+          // 0. Re-vérifier les horaires
+          if (this.config && !isWithinOfficeHours(this.config)) {
+            await stopCampaign();
+            break;
+          }
+
           // Vérifier quota
           if (state.etatCampagne.profilsTraitesAujourdhui >= state.config.maxParJour) {
             console.log(`${LOG_TAG} Quota journalier atteint.`);
@@ -119,19 +135,23 @@ class ExecutionEngine {
             return;
           }
 
-          // Pause humanisée avant action
-          const pause = randomBetween(
-            (this.config?.pauseMin || 30) * 1000,
-            (this.config?.pauseMax || 60) * 1000
+          // Pause humanisée avant action (Distribution non-uniforme)
+          console.log(`${LOG_TAG} Simulation de réflexion humaine avant ${urn}...`);
+          await randomDelayHuman(
+            (this.config?.pauseMin || 20) * 1000,
+            (this.config?.pauseMax || 45) * 1000
           );
-          console.log(`${LOG_TAG} Pause de ${Math.round(pause / 1000)}s avant ${urn}...`);
-          await sleep(pause);
 
           if (!this.active) break;
 
           // 3. Exécuter le flux d'invitation
           const name = this.extractName(card);
           await this.processProfile(card, urn, name);
+
+          // 4. Bruit de fond passif (Simulation de comportement humain)
+          if (this.active) {
+            await humanScroll();
+          }
         }
 
         // 4. Passer à la page suivante si on est toujours actif
@@ -250,9 +270,10 @@ class ExecutionEngine {
     const textarea = await waitForElement(SELECTORS.NOTE_TEXT_AREA, 3000) as HTMLTextAreaElement;
     const message = this.buildMessage(name);
     
+    await randomDelayHuman(1000, 2000); // Temps de "frappe"
     console.log(`${LOG_TAG} Injection du message...`);
     injectTextInReact(textarea, message);
-    await sleep(randomBetween(800, 1500));
+    await randomDelayHuman(1500, 3000); // Relecture avant envoi
 
     // 3. Envoi
     const sendBtn = document.querySelector(SELECTORS.SEND_INVITATION_BUTTON);
