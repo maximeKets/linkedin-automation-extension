@@ -26,7 +26,7 @@ function isSearchPage(): boolean {
 function watchCampaignState(): void {
   chrome.storage.onChanged.addListener((changes) => {
     if (changes.etatCampagne?.newValue) {
-      const { active } = changes.etatCampagne.newValue;
+      const { active } = changes.etatCampagne.newValue as { active: boolean };
       if (active && isSearchPage()) {
         log('Campagne activée — moteur prêt (en attente Issue #4)');
       } else if (active && !isSearchPage()) {

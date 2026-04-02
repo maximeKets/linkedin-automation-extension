@@ -42,17 +42,17 @@ function App() {
   // Load state from storage on mount
   useEffect(() => {
     chrome.storage.local.get(['etatCampagne', 'config'], (result) => {
-      if (result.etatCampagne) setState(result.etatCampagne);
-      if (result.config) setConfig(result.config);
+      if (result.etatCampagne) setState(result.etatCampagne as CampaignState);
+      if (result.config) setConfig(result.config as Config);
     });
 
     // Listen for real-time changes from the content script
     const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.etatCampagne?.newValue) {
-        setState(changes.etatCampagne.newValue);
+        setState(changes.etatCampagne.newValue as CampaignState);
       }
       if (changes.config?.newValue) {
-        setConfig(changes.config.newValue);
+        setConfig(changes.config.newValue as Config);
       }
     };
 
