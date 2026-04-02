@@ -20,13 +20,24 @@ import {
 function App() {
   const [campaignState, setCampaignState] = useState<CampaignState>(DEFAULTS.etatCampagne);
   const [config, setConfig] = useState<Config>(DEFAULTS.config);
+  const [isLinkedInSearch, setIsLinkedInSearch] = useState(false);
+  const [messageDraft, setMessageDraft] = useState(config.messageTemplate);
 
   // Load state from storage on mount
   useEffect(() => {
     getState().then((stored) => {
       setCampaignState(stored.etatCampagne);
       setConfig(stored.config);
+      setMessageDraft(stored.config.messageTemplate);
     });
+
+    // Detect current tab context
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const url = tabs[0]?.url || '';
+        setIsLinkedInSearch(url.includes('linkedin.com/search/results/people'));
+      });
+    }
 
     // Listen for real-time changes from the content script
     const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
@@ -34,7 +45,12 @@ function App() {
         setCampaignState(changes.etatCampagne.newValue as CampaignState);
       }
       if (changes.config?.newValue) {
-        setConfig(changes.config.newValue as Config);
+        const newConf = changes.config.newValue as Config;
+        setConfig(newConf);
+        // Sync local draft from storage only if not currently focused by user
+        if (document.activeElement?.id !== 'message-editor') {
+          setMessageDraft(newConf.messageTemplate);
+        }
       }
     };
 
@@ -69,14 +85,26 @@ function App() {
     await updateConfig({ modeExpert: isChecked });
   };
 
-  const updateHours = async (field: 'heuresDebut' | 'heuresFin', value: string) => {
-    const val = parseInt(value, 10);
-    if (!isNaN(val)) {
-      await updateConfig({ [field]: val });
-    }
+  const updateConfigField = async (partial: Partial<Config>) => {
+    const updated = await updateConfig(partial);
+    setConfig(updated);
+  };
+
+  const [debounceTimer, setDebounceTimer] = useState<number | null>(null);
+  
+  const handleMessageChange = (e: any) => {
+    const newVal = e.currentTarget.value;
+    setMessageDraft(newVal);
+    
+    if (debounceTimer) window.clearTimeout(debounceTimer);
+    const timer = window.setTimeout(() => {
+      updateConfigField({ messageTemplate: newVal });
+    }, 800);
+    setDebounceTimer(timer);
   };
 
   const isWorkingHours = isWithinOfficeHours(config);
+  const canStart = isLinkedInSearch && messageDraft.trim().length > 0;
 
   return (
     <>
@@ -98,6 +126,26 @@ function App() {
         </div>
       </div>
 
+      {/* Context Warning */}
+      {!isLinkedInSearch && (
+        <div class="alert warn animated-in">
+          ⚠️ Ouvrez une page de recherche LinkedIn (Membres) pour démarrer.
+        </div>
+      )}
+
+      {/* Message Editor */}
+      <div class="message-section">
+        <label htmlFor="message-editor">Message d'invitation</label>
+        <textarea
+          id="message-editor"
+          value={messageDraft}
+          onInput={handleMessageChange}
+          placeholder="Ex: Bonjour {nom}, ravi de..."
+          disabled={campaignState.active}
+        ></textarea>
+        <div class="message-hint">Utilisez <code>{`{nom}`}</code> pour le prénom.</div>
+      </div>
+
       {/* Start / Stop button */}
       {!isWorkingHours && !campaignState.active ? (
         <div class="scheduled-info">
@@ -108,15 +156,34 @@ function App() {
           class={`btn-start ${campaignState.active ? 'active' : 'idle'}`}
           onClick={toggleCampaign}
           id="btn-toggle-campaign"
+          disabled={!canStart && !campaignState.active}
         >
           {campaignState.active ? '⏸ ARRÊTER' : '▶ DÉMARRER'}
         </button>
       )}
 
-      {/* Info */}
-      <div class="info-row">
-        <span>⏱️ Pause</span>
-        <span class="value">{config.pauseMin}s – {config.pauseMax}s</span>
+      {/* Config: Pauses */}
+      <div class="config-grid">
+        <div class="config-item">
+          <label>Pause Min (s)</label>
+          <input
+            type="number"
+            min="5"
+            max={config.pauseMax}
+            value={config.pauseMin}
+            onInput={(e) => updateConfigField({ pauseMin: parseInt(e.currentTarget.value, 10) || 20 })}
+          />
+        </div>
+        <div class="config-item">
+          <label>Pause Max (s)</label>
+          <input
+            type="number"
+            min={config.pauseMin}
+            max="300"
+            value={config.pauseMax}
+            onInput={(e) => updateConfigField({ pauseMax: parseInt(e.currentTarget.value, 10) || 45 })}
+          />
+        </div>
       </div>
       <div class="info-row">
         <span>📅 Dernier run</span>
@@ -147,7 +214,7 @@ function App() {
                   min="0"
                   max="23"
                   value={config.heuresDebut}
-                  onChange={(e) => updateHours('heuresDebut', e.currentTarget.value)}
+                  onChange={(e) => updateConfigField({ heuresDebut: parseInt(e.currentTarget.value, 10) || 0 })}
                 />
                 <span>à</span>
                 <input
@@ -155,7 +222,7 @@ function App() {
                   min="0"
                   max="23"
                   value={config.heuresFin}
-                  onChange={(e) => updateHours('heuresFin', e.currentTarget.value)}
+                  onChange={(e) => updateConfigField({ heuresFin: parseInt(e.currentTarget.value, 10) || 0 })}
                 />
               </div>
             </div>
