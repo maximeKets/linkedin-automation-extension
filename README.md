@@ -25,10 +25,10 @@
 
 L'extension n'est pas encore sur le Chrome Web Store. Voici comment l'installer en 30 secondes :
 
-1.  **Télécharger l'extension** : Récupérez le fichier `linkedin-stealth-automator-v1.zip` et dézippez-le sur votre ordinateur.
+1.  **Télécharger l'extension** : Récupérez le fichier `linkedin-stealth-automator-v1.zip` et dézippez-le dans un dossier sur votre ordinateur.
 2.  **Ouvrir les Extensions** : Dans Chrome ou Edge, accédez à `chrome://extensions/`.
 3.  **Activer le Mode Développeur** : Cochez l'interrupteur en haut à droite de la page.
-4.  **Charger l'extension** : Cliquez sur le bouton **"Charger l'extension décompressée"** et sélectionnez le dossier `dist/` issu du dézippage.
+4.  **Charger l'extension** : Cliquez sur le bouton **"Charger l'extension décompressée"** et sélectionnez directement le dossier que vous venez de dézipper.
 5.  **Épingler** : Cliquez sur l'icône puzzle en haut à droite de votre navigateur et épinglez l'icône bleue "S".
 
 ---
