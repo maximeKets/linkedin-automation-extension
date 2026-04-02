@@ -30,7 +30,12 @@ import {
   randomDelayHuman,
   humanScroll,
 } from './utils/domUtils';
-
+import { 
+  fillTemplate, 
+  parseFullName, 
+  parseCompanyFromTitle,
+  type ProfileData 
+} from './utils/templateEngine';
 import { injectTextInReact } from './utils/reactUtils';
 import { SELECTORS } from './core/selectors';
 
@@ -145,8 +150,8 @@ class ExecutionEngine {
           if (!this.active) break;
 
           // 3. Exécuter le flux d'invitation
-          const name = this.extractName(card);
-          await this.processProfile(card, urn, name);
+          const profileData = this.extractProfileData(card);
+          await this.processProfile(card, urn, profileData);
 
           // 4. Bruit de fond passif (Simulation de comportement humain)
           if (this.active) {
@@ -180,8 +185,8 @@ class ExecutionEngine {
   /**
    * Gère le flux complet pour un profil donné.
    */
-  private async processProfile(card: Element, urn: string, name: string): Promise<void> {
-    console.log(`${LOG_TAG} Traitment de ${urn} (${name})...`);
+  private async processProfile(card: Element, urn: string, data: ProfileData): Promise<void> {
+    console.log(`${LOG_TAG} Traitement de ${urn} (${data.prenom} ${data.nom})...`);
 
     try {
       // Trouver le bouton "Se connecter"
@@ -212,7 +217,7 @@ class ExecutionEngine {
       }
 
       if (modalType === 'STANDARD') {
-        await this.handleStandardInvitation(urn, name);
+        await this.handleStandardInvitation(urn, data);
       } else {
         throw new Error('Type de modale inconnu ou timeout');
       }
@@ -258,7 +263,7 @@ class ExecutionEngine {
   /**
    * Gère le remplissage et l'envoi de l'invitation standard.
    */
-  private async handleStandardInvitation(urn: string, name: string): Promise<void> {
+  private async handleStandardInvitation(urn: string, data: ProfileData): Promise<void> {
     // 1. Clic sur "Ajouter une note" si nécessaire
     const addNoteBtn = document.querySelector(SELECTORS.ADD_NOTE_BUTTON);
     if (addNoteBtn) {
@@ -268,7 +273,7 @@ class ExecutionEngine {
 
     // 2. Injection du texte
     const textarea = await waitForElement(SELECTORS.NOTE_TEXT_AREA, 3000) as HTMLTextAreaElement;
-    const message = this.buildMessage(name);
+    const message = this.buildMessage(data);
     
     await randomDelayHuman(1000, 2000); // Temps de "frappe"
     console.log(`${LOG_TAG} Injection du message...`);
@@ -290,28 +295,33 @@ class ExecutionEngine {
   }
 
   /**
-   * Tente d'extraire le prénom d'une carte de résultat.
+   * Tente d'extraire les données d'une carte de résultat.
    */
-  private extractName(card: Element): string {
+  private extractProfileData(card: Element): ProfileData {
+    // 1. Nom complet
     const nameEl = card.querySelector(SELECTORS.PROFILE_NAME);
-    if (!nameEl) return '';
+    const fullName = nameEl?.textContent?.trim() || 'Collaborateur';
+    const { prenom, nom } = parseFullName(fullName);
 
-    const fullName = nameEl.textContent?.trim() || '';
-    // On prend le premier mot (prénom)
-    return fullName.split(' ')[0] || '';
+    // 2. Titre et Entreprise
+    const titleEl = card.querySelector(SELECTORS.PROFILE_TITLE);
+    const rawTitle = titleEl?.textContent?.trim() || '';
+    const { titre, entreprise } = parseCompanyFromTitle(rawTitle);
+
+    return {
+      prenom,
+      nom,
+      titre,
+      entreprise
+    };
   }
 
   /**
-   * Construit le message avec remplacement du {nom}.
+   * Construit le message à partir du template.
    */
-  private buildMessage(name: string): string {
-    const raw = this.config?.messageTemplate || 'Bonjour {nom}, j\'aimerais rejoindre votre réseau.';
-    // Si on a un nom, on l'utilise, sinon on enlève le marqueur proprement
-    const result = name 
-      ? raw.replace('{nom}', name) 
-      : raw.replace('{nom}', '').replace('  ', ' ');
-
-    return result.trim();
+  private buildMessage(data: ProfileData): string {
+    const template = this.config?.messageTemplate || 'Bonjour {prenom}, j\'aimerais rejoindre votre réseau.';
+    return fillTemplate(template, data);
   }
 
   /**

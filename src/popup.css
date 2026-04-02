@@ -219,6 +219,29 @@ body {
   color: var(--accent);
 }
 
+.message-preview {
+  margin-top: 4px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+
+.preview-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.preview-content {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
 /* Config Grid */
 .config-grid {
   display: grid;
