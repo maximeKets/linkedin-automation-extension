@@ -1,55 +1,35 @@
 import { render } from 'preact';
 import { useState, useEffect } from 'preact/hooks';
+import {
+  getState,
+  startCampaign,
+  stopCampaign,
+  DEFAULTS,
+  type CampaignState,
+  type Config,
+} from './core/storage';
 
 /**
  * Popup — Interface principale de l'extension.
- * Éphémère : lit l'état depuis chrome.storage.local et écrit la config.
+ * Éphémère : lit l'état via la couche storage et écrit la config.
  * Ne gère aucune logique métier lourde.
  */
 
-interface CampaignState {
-  active: boolean;
-  profilsTraitesAujourdhui: number;
-  dateDernierRun: string;
-}
-
-interface Config {
-  modeExpert: boolean;
-  maxParJour: number;
-  pauseMin: number;
-  pauseMax: number;
-  messageTemplate: string;
-}
-
-const DEFAULT_STATE: CampaignState = {
-  active: false,
-  profilsTraitesAujourdhui: 0,
-  dateDernierRun: '',
-};
-
-const DEFAULT_CONFIG: Config = {
-  modeExpert: false,
-  maxParJour: 30,
-  pauseMin: 20,
-  pauseMax: 45,
-  messageTemplate: 'Bonjour {nom}, je souhaite vous ajouter à mon réseau professionnel.',
-};
-
 function App() {
-  const [state, setState] = useState<CampaignState>(DEFAULT_STATE);
-  const [config, setConfig] = useState<Config>(DEFAULT_CONFIG);
+  const [campaignState, setCampaignState] = useState<CampaignState>(DEFAULTS.etatCampagne);
+  const [config, setConfig] = useState<Config>(DEFAULTS.config);
 
   // Load state from storage on mount
   useEffect(() => {
-    chrome.storage.local.get(['etatCampagne', 'config'], (result) => {
-      if (result.etatCampagne) setState(result.etatCampagne as CampaignState);
-      if (result.config) setConfig(result.config as Config);
+    getState().then((stored) => {
+      setCampaignState(stored.etatCampagne);
+      setConfig(stored.config);
     });
 
     // Listen for real-time changes from the content script
     const listener = (changes: { [key: string]: chrome.storage.StorageChange }) => {
       if (changes.etatCampagne?.newValue) {
-        setState(changes.etatCampagne.newValue as CampaignState);
+        setCampaignState(changes.etatCampagne.newValue as CampaignState);
       }
       if (changes.config?.newValue) {
         setConfig(changes.config.newValue as Config);
@@ -61,17 +41,16 @@ function App() {
   }, []);
 
   const progress = config.maxParJour > 0
-    ? Math.min((state.profilsTraitesAujourdhui / config.maxParJour) * 100, 100)
+    ? Math.min((campaignState.profilsTraitesAujourdhui / config.maxParJour) * 100, 100)
     : 0;
 
   const toggleCampaign = async () => {
-    const newState: CampaignState = {
-      ...state,
-      active: !state.active,
-      dateDernierRun: new Date().toISOString().split('T')[0],
-    };
-    await chrome.storage.local.set({ etatCampagne: newState });
-    setState(newState);
+    if (campaignState.active) {
+      await stopCampaign();
+    } else {
+      await startCampaign();
+    }
+    // State will be updated via the onChanged listener
   };
 
   return (
@@ -87,7 +66,7 @@ function App() {
       <div class="status-card">
         <div class="status-label">Invitations aujourd'hui</div>
         <div class="status-count">
-          {state.profilsTraitesAujourdhui} <span>/ {config.maxParJour}</span>
+          {campaignState.profilsTraitesAujourdhui} <span>/ {config.maxParJour}</span>
         </div>
         <div class="progress-bar">
           <div class="progress-fill" style={{ width: `${progress}%` }}></div>
@@ -96,11 +75,11 @@ function App() {
 
       {/* Start / Stop button */}
       <button
-        class={`btn-start ${state.active ? 'active' : 'idle'}`}
+        class={`btn-start ${campaignState.active ? 'active' : 'idle'}`}
         onClick={toggleCampaign}
         id="btn-toggle-campaign"
       >
-        {state.active ? '⏸ ARRÊTER' : '▶ DÉMARRER'}
+        {campaignState.active ? '⏸ ARRÊTER' : '▶ DÉMARRER'}
       </button>
 
       {/* Info */}
@@ -110,7 +89,7 @@ function App() {
       </div>
       <div class="info-row">
         <span>📅 Dernier run</span>
-        <span class="value">{state.dateDernierRun || '—'}</span>
+        <span class="value">{campaignState.dateDernierRun || '—'}</span>
       </div>
     </>
   );
