@@ -58,7 +58,7 @@ export class ExecutionEngine {
     this.active = state.etatCampagne.active;
     this.config = state.config;
 
-    console.log(`${LOG_TAG} Initialisé. Actif: ${this.active}`);
+    console.debug(`${LOG_TAG} Initialisé. Actif: ${this.active}`);
 
     // Surveiller les changements d'activation
     chrome.storage.onChanged.addListener((changes) => {
@@ -66,7 +66,7 @@ export class ExecutionEngine {
         const newState = changes.etatCampagne.newValue as CampaignState;
         if (newState.active !== this.active) {
           this.active = newState.active;
-          console.log(`${LOG_TAG} État changé: ${this.active ? 'DÉMARRAGE' : 'ARRÊT'}`);
+          console.debug(`${LOG_TAG} État changé: ${this.active ? 'DÉMARRAGE' : 'ARRÊT'}`);
           if (this.active && !this.isProcessing) {
             this.run();
           }
@@ -94,20 +94,20 @@ export class ExecutionEngine {
       while (this.active) {
         // 0. Vérification des horaires (Sécurité critique)
         if (this.config && !isWithinOfficeHours(this.config)) {
-          console.log(`${LOG_TAG} Hors horaires autorisés (${this.config.heuresDebut}h-${this.config.heuresFin}h). Pause automatique.`);
+          console.debug(`${LOG_TAG} Hors horaires autorisés (${this.config.heuresDebut}h-${this.config.heuresFin}h). Pause automatique.`);
           await stopCampaign();
           break;
         }
 
-        console.log(`${LOG_TAG} Début du cycle de scan...`);
+        console.debug(`${LOG_TAG} Début du cycle de scan...`);
         
         // 1. Attendre les résultats de recherche
         const cards = await this.getScanTargets();
         if (cards.length === 0) {
-          console.log(`${LOG_TAG} Aucun profil trouvé sur cette page.`);
+          console.debug(`${LOG_TAG} Aucun profil trouvé sur cette page.`);
           const hasNext = await this.goToNextPage();
           if (!hasNext) {
-            console.log(`${LOG_TAG} Fin des résultats. Arrêt.`);
+            console.debug(`${LOG_TAG} Fin des résultats. Arrêt.`);
             await stopCampaign();
             break;
           }
@@ -135,13 +135,13 @@ export class ExecutionEngine {
 
           // Vérifier quota
           if (state.etatCampagne.profilsTraitesAujourdhui >= state.config.maxParJour) {
-            console.log(`${LOG_TAG} Quota journalier atteint.`);
+            console.debug(`${LOG_TAG} Quota journalier atteint.`);
             await stopCampaign();
             return;
           }
 
           // Pause humanisée avant action (Distribution non-uniforme)
-          console.log(`${LOG_TAG} Simulation de réflexion humaine avant ${urn}...`);
+          console.debug(`${LOG_TAG} Simulation de réflexion humaine avant ${urn}...`);
           await randomDelayHuman(
             (this.config?.pauseMin || 20) * 1000,
             (this.config?.pauseMax || 45) * 1000
@@ -186,13 +186,13 @@ export class ExecutionEngine {
    * Gère le flux complet pour un profil donné.
    */
   private async processProfile(card: Element, urn: string, data: ProfileData): Promise<void> {
-    console.log(`${LOG_TAG} Traitement de ${urn} (${data.prenom} ${data.nom})...`);
+    console.debug(`${LOG_TAG} Traitement de ${urn} (${data.prenom} ${data.nom})...`);
 
     try {
       // Trouver le bouton "Se connecter"
       const connectBtn = card.querySelector(SELECTORS.CONNECT_BUTTON_FROM_CARD);
       if (!connectBtn) {
-        console.log(`${LOG_TAG} Bouton "Se connecter" non trouvé pour ${urn} (déjà connecté ?)`);
+        console.debug(`${LOG_TAG} Bouton "Se connecter" non trouvé pour ${urn} (déjà connecté ?)`);
         await addToHistory(urn); // On skip
         return;
       }
@@ -210,7 +210,7 @@ export class ExecutionEngine {
       }
 
       if (modalType === 'EMAIL_REQUIRED') {
-        console.log(`${LOG_TAG} Email requis pour ${urn}. Mapping vers échec.`);
+        console.debug(`${LOG_TAG} Email requis pour ${urn}. Mapping vers échec.`);
         await this.closeModal();
         await addToFailures(urn);
         return;
@@ -276,7 +276,7 @@ export class ExecutionEngine {
     const message = this.buildMessage(data);
     
     await randomDelayHuman(1000, 2000); // Temps de "frappe"
-    console.log(`${LOG_TAG} Injection du message...`);
+    console.debug(`${LOG_TAG} Injection du message...`);
     injectTextInReact(textarea, message);
     await randomDelayHuman(1500, 3000); // Relecture avant envoi
 
@@ -289,7 +289,7 @@ export class ExecutionEngine {
     // 4. Attendre confirmation (fermeture modale)
     await waitForElementRemoval(SELECTORS.MODAL_CONTAINER, 5000);
     
-    console.log(`${LOG_TAG} Invitation envoyée avec succès à ${urn}`);
+    console.debug(`${LOG_TAG} Invitation envoyée avec succès à ${urn}`);
     await addToHistory(urn);
     await incrementDailyCounter();
   }
@@ -342,7 +342,7 @@ export class ExecutionEngine {
     const nextBtn = document.querySelector(SELECTORS.NEXT_PAGE_BUTTON) as HTMLButtonElement;
     if (!nextBtn || nextBtn.disabled) return false;
 
-    console.log(`${LOG_TAG} Passage à la page suivante...`);
+    console.debug(`${LOG_TAG} Passage à la page suivante...`);
     await clickElement(nextBtn);
     
     // Attendre que l'URL change ou que les nouveaux résultats arrivent

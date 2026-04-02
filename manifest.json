@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Stealth Automator",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Automatise l'envoi d'invitations LinkedIn avec notes personnalisées depuis une page de recherche.",
   "permissions": [
     "storage",

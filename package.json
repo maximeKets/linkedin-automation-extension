@@ -1,12 +1,13 @@
 {
   "name": "linkedin-stealth-automator",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Extension Chrome furtive pour automatiser les invitations LinkedIn",
   "type": "module",
-  "scripts": {
+    "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "package": "npm run build && zip -r linkedin-stealth-automator-v1.zip dist",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
